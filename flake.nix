@@ -1,8 +1,8 @@
 {
-  description = "A Nix flake for beatportdl (Makefile build)";
+  description = "A Nix flake for beatport-dl";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs?tag=25.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -13,7 +13,7 @@
 
         beatport-dl = pkgs.buildGoModule {
           pname = "beatport-dl";
-          version = "0.1.0";
+          version = self.shortRev or "dirty";
           src = ./.;
           vendorHash = null;
 
