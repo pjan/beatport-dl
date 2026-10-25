@@ -1,0 +1,61 @@
+name: "Build and Cache"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - flake.lock
+  workflow_dispatch:
+
+jobs:
+  build-cache:
+    runs-on: macos-14
+    env:
+      NIXPKGS_ALLOW_UNFREE: "1"
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          extra_nix_config: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+
+      - name: Write nix signing key
+        env:
+          NIX_SIGNING_KEY: ${{ secrets.NIX_SIGNING_KEY }}
+        run: printf '%s' "$NIX_SIGNING_KEY" > "$RUNNER_TEMP/nix-signing-key"
+
+      - name: Write GCS credentials
+        env:
+          GCS_KEY_ID: ${{ secrets.GCS_HMAC_ACCESS_KEY_ID }}
+          GCS_SECRET: ${{ secrets.GCS_HMAC_SECRET_ACCESS_KEY }}
+        run: |
+          printf '[gcp]\naws_access_key_id = %s\naws_secret_access_key = %s\n' \
+            "$GCS_KEY_ID" "$GCS_SECRET" > "$RUNNER_TEMP/gcs-credentials"
+          echo "AWS_SHARED_CREDENTIALS_FILE=$RUNNER_TEMP/gcs-credentials" >> "$GITHUB_ENV"
+
+      - name: Build package
+        run: nix build .#default
+
+      - name: Sign store paths
+        run: |
+          nix store sign --recursive \
+            -k "$RUNNER_TEMP/nix-signing-key" \
+            "$(readlink ./result)"
+
+      - name: Push to GCS cache
+        run: |
+          nix copy \
+            --to "s3://io-vandaele-nix-cache?endpoint=https://storage.googleapis.com&profile=gcp" \
+            "$(readlink ./result)"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          [ -L ./result ] && unlink ./result || true
+          rm -f "$RUNNER_TEMP/nix-signing-key"
+          rm -f "${AWS_SHARED_CREDENTIALS_FILE:-$RUNNER_TEMP/gcs-credentials}"
