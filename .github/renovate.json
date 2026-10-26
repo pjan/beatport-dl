@@ -2,6 +2,18 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
   "ignorePaths": ["flake.nix"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/\\.github/workflows/.*\\.yml$/"],
+      "matchStrings": [
+        "https://releases\\.nixos\\.org/nix/nix-(?<currentValue>[\\d.]+)/install"
+      ],
+      "depNameTemplate": "NixOS/nix",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver"
+    }
+  ],
   "packageRules": [
     {
       "matchUpdateTypes": ["patch", "pin", "digest"],
@@ -10,6 +22,11 @@
     {
       "matchManagers": ["gomod"],
       "groupName": "Go dependencies"
+    },
+    {
+      "matchDepNames": ["NixOS/nix"],
+      "groupName": "nix installer",
+      "groupSlug": "nix-installer"
     }
   ]
 }

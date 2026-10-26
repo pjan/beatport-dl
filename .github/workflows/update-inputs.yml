@@ -2,7 +2,7 @@ name: "Update Inputs"
 
 on:
   schedule:
-    - cron: "0 20 * * 0"
+    - cron: "0 20 * * 6"
   workflow_dispatch:
 
 permissions:
@@ -10,6 +10,19 @@ permissions:
   pull-requests: write
 
 jobs:
+  renovate:
+    name: Update action pins and nix version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: renovatebot/github-action@2804199d260ad00c1fae0e9e842888369391c776 # v46.3.10
+        with:
+          configurationFile: .github/renovate.json
+          token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          RENOVATE_REPOSITORIES: ${{ github.repository }}
+
   update:
     runs-on: ubuntu-latest
     steps:
