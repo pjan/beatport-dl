@@ -10,6 +10,7 @@ require (
 	github.com/grafov/m3u8 v0.12.1
 	github.com/vbauerster/mpb/v8 v8.10.2
 	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
